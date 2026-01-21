@@ -5,8 +5,12 @@ package_manager = "yarn"
 resolution = true
 skip-lint = false
 
+[programs.devnet]
+pda = "oPcDGLrzNmSfYd7kvWrgFtSpNsS7YpsM9oND3Pk3hxR"
+hello_anchor = "3esYZF6voRJC8BpkDFGdVZnPJoryS2wBcES6PBdtrehq"
+
 [programs.localnet]
-hello_anchor = "5NMFG8egyVfD2qeFredTdW12VMXHCV3xmNaJiGMXBFBq"
+hello_anchor = "3esYZF6voRJC8BpkDFGdVZnPJoryS2wBcES6PBdtrehq"
 
 [registry]
 url = "https://api.apr.dev"

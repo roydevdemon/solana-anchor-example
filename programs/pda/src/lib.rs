@@ -1,4 +1,5 @@
 use anchor_lang::prelude::*;
+use anchor_lang::system_program::{transfer, Transfer};
 
 declare_id!("oPcDGLrzNmSfYd7kvWrgFtSpNsS7YpsM9oND3Pk3hxR");
 
@@ -20,11 +21,40 @@ pub mod pda {
         msg!("Update Message: {}", message);
         let account_data = &mut _ctx.accounts.message_account;
         account_data.message = message;
+
+        // transfer to vault account
+        let transfer_accounts = Transfer {
+            from: _ctx.accounts.user.to_account_info(),
+            to: _ctx.accounts.vault_account.to_account_info(),
+        };
+
+        let cpi_context = CpiContext::new(
+            _ctx.accounts.system_program.to_account_info(),
+            transfer_accounts,
+        ); 
+
+        // transfer 1,000,000 lamports (0.001 SOL)
+        transfer(cpi_context, 1_000_000)?;
         Ok(())
     }
 
     pub fn delete(_ctx: Context<Delete>) -> Result<()> {
         msg!("Delete Message");
+
+        let user_key = _ctx.accounts.user.key();
+        let signer_seeds: &[&[&[u8]]] = &[&[b"vault", user_key.as_ref(), &[_ctx.bumps.vault_account]]];
+
+        let transfer_accounts = Transfer {
+            from: _ctx.accounts.vault_account.to_account_info(),
+            to: _ctx.accounts.user.to_account_info(),
+        };
+
+        let cpi_context = CpiContext::new(
+            _ctx.accounts.system_program.to_account_info(),
+            transfer_accounts
+        ).with_signer(signer_seeds);
+
+        transfer(cpi_context, _ctx.accounts.vault_account.lamports())?;
         Ok(())
     }
 }
@@ -62,6 +92,13 @@ pub struct Update<'info> {
     )]
     pub message_account: Account<'info, MessageAccount>,
     pub system_program: Program<'info, System>,
+
+    #[account(
+        mut,
+        seeds = [b"vault", user.key().as_ref()],
+        bump,
+    )]
+    pub vault_account: SystemAccount<'info>,
 }
 
 #[derive(Accounts)]
@@ -76,6 +113,15 @@ pub struct Delete<'info> {
         close = user,
     )]
     pub message_account: Account<'info, MessageAccount>,
+
+    #[account(
+        mut,
+        seeds = [b"vault", user.key().as_ref()],
+        bump,
+    )]
+    pub vault_account: SystemAccount<'info>,
+
+    pub system_program: Program<'info, System>,
 }
 
 #[account]

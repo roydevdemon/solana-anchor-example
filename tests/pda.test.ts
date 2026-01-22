@@ -10,10 +10,16 @@ describe("pda", () => {
     const program = anchor.workspace.Pda as Program<Pda>;
     const wallet = provider.wallet;
 
-    const [messagePda] = PublicKey.findProgramAddressSync(
+    const [messagePda, messageBump] = PublicKey.findProgramAddressSync(
         [Buffer.from("message"), wallet.publicKey.toBuffer()],
         program.programId
     );
+
+    const [vaultPda, vaultBump] = PublicKey.findProgramAddressSync(
+        [Buffer.from("vault"), wallet.publicKey.toBuffer()],
+        program.programId
+    );
+    
 
     it("Create Message Account", async () => {
         const message = "Hi Solana!";
@@ -34,6 +40,10 @@ describe("pda", () => {
         const message = "Hello Passenger!";
         const txSig = await program.methods
             .update(message)
+            .accounts({
+                messageAccount: messagePda,
+                vaultAccount: vaultPda,
+            })
             .rpc({ commitment: "confirmed" });
 
         const messageAccount = await program.account.messageAccount.fetch(
@@ -48,6 +58,10 @@ describe("pda", () => {
     it("Delete Message Account", async () => {
         const txSig = await program.methods
             .delete()
+            .accounts({
+                messageAccount: messagePda,
+                vaultAccount: vaultPda,
+            })
             .rpc({ commitment: "confirmed" });
 
         const messageAccount = await program.account.messageAccount.fetchNullable(
